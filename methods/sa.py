@@ -14,9 +14,9 @@ class Simulated_annealing:
         
         return 
     
-    def resolution(self,instance,max_no_impr,demand_form,
-                   results_file,solution_coding,so_init):
-    
+    def simulated_annealing(self,instance,max_no_impr,demand_form,
+                            results_file,solution_coding,so_init):
+      
         no_impr,T0 = self.get_initial_variables()
         best_ch,so = self.random_initialization(instance,demand_form,results_file,
                                                 solution_coding,so_init)
@@ -50,7 +50,6 @@ class Simulated_annealing:
         self.last_product_period_move_list = list()
         self.last_product_move_list = list()
         self.last_period_move_list = list()
-
 
         return no_impr,T0
 

@@ -38,8 +38,8 @@ class Solution_sa_prices(Solution):
         #2. Resolve the capacitated multi item lot sizing problem resulted from the generated demand 
         ex_sol = EXACT_SOLVER()
         setups,productions,inventories,obj = ex_sol.cmlsp_resolution(instance.J,instance.T,demand,
-                                              instance.c_dict,instance.h_dict,instance.a_dict,
-                                              instance.v,instance.prod_cap)
+                                                                     instance.c_dict,instance.h_dict,
+                                                                     instance.a_dict,instance.v,instance.prod_cap)
         self.productions = productions
         self.inventories = inventories
         self.prices = prices
