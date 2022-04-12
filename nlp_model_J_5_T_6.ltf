@@ -1,0 +1,128 @@
+set default
+set echoin 1
+
+MODEL:
+DATA:
+
+PRODUCTS_NUMBER = @FILE('instances/products_5_periods_6.LDT);
+PERIODS_NUMBER = @FILE('instances/products_5_periods_6.LDT);
+
+ENDDATA
+
+CALC:
+
+@SET('TIMLIM',30);
+ENDCALC
+
+SETS:
+PRODUCTS /1..PRODUCTS_NUMBER/;
+PERIODS /1..PERIODS_NUMBER/;
+OPERATIONAL_MARKET(PRODUCTS,PERIODS): C, H, SC, A, LB, UB, SEASONALITY, P, I, X;
+CAPACITY_USED(PRODUCTS): V;
+CAPACITY(PERIODS):PROD_CAP;
+CROSS_PRICE(PRODUCTS,PRODUCTS):B;
+
+ENDSETS
+
+DATA:
+
+!------------------------------------------------------------------------------------------------------------------------------------------;
+!------------------------------------------------------------- Logistic data --------------------------------------------------------------;
+!------------------------------------------------------------------------------------------------------------------------------------------;
+C = @FILE('instances/products_5_periods_6.LDT);
+H = @FILE('instances/products_5_periods_6.LDT);
+SC = @FILE('instances/products_5_periods_6.LDT);
+V = @FILE('instances/products_5_periods_6.LDT);
+PROD_CAP = @FILE('instances/products_5_periods_6.LDT);
+
+!------------------------------------------------------------------------------------------------------------------------------------------;
+!------------------------------------------------------------- Market data --------------------------------------------------------------;
+!------------------------------------------------------------------------------------------------------------------------------------------;
+LB = @FILE('instances/products_5_periods_6.LDT);
+UB = @FILE('instances/products_5_periods_6.LDT);
+A = @FILE('instances/products_5_periods_6.LDT);
+B = @FILE('instances/products_5_periods_6.LDT);
+SEASONALITY = @FILE('instances/products_5_periods_6.LDT);!------------------------------------------------------------------------------------------------------------------------------------------;
+!------------------------------------------------------------- Results --------------------------------------------------------------;
+!------------------------------------------------------------------------------------------------------------------------------------------;
+@TEXT('./results/J_5_T_6_setups_solution') = @WRITE('Total profit of the horizon: ',@SUM(OPERATIONAL_MARKET(j,t): P(j,t)*SEASONALITY(j,t)    *A(j,t)*@PROD(CROSS_PRICE(j,i1):@POW(P(i1,t),B(j,i1)))- C(j,t)*X(j,t) - H(j,t)*I(j,t)) ,@NEWLINE(1));
+@TEXT('./results/J_5_T_6_setups_solution') = @WRITE('The resolution time is: ',@TIME(),' seconds',@NEWLINE(1));
+
+@TEXT('./results/J_5_T_6_setups_solution') = @WRITE('----------------------------------------------------------------------',@NEWLINE(1));
+@TEXT('./results/J_5_T_6_setups_solution') = @WRITE('  Product-period       Production                       Stock',@NEWLINE(1));
+@TEXT('./results/J_5_T_6_setups_solution') = @WRITE('----------------------------------------------------------------------',@NEWLINE(1));
+@TEXT('./results/J_5_T_6_setups_solution') = @WRITEFOR(OPERATIONAL_MARKET(j,t): 6*' ','(',j, ',',t,')',6*' ', X(j,t), 11*' ', I(j,t),@NEWLINE(1));
+@TEXT('./results/J_5_T_6_setups_solution') = @WRITE('------------------------------------',@NEWLINE(1));
+@TEXT('./results/J_5_T_6_setups_solution') = @WRITE('  Product-period       Price',@NEWLINE(1));
+@TEXT('./results/J_5_T_6_setups_solution') = @WRITE('------------------------------------',@NEWLINE(1));
+@TEXT('./results/J_5_T_6_setups_solution') = @WRITEFOR(OPERATIONAL_MARKET(j,t): 6*' ','(',j, ',',t,')',6*' ', P(j,t),@NEWLINE(1));
+@TEXT('./results/J_5_T_6_setups_solution') = @WRITE('------------------------------------',@NEWLINE(1));
+@TEXT('./results/J_5_T_6_setups_solution') = @WRITE('  Product-period       Generated demand',@NEWLINE(1));
+@TEXT('./results/J_5_T_6_setups_solution') = @WRITE('------------------------------------',@NEWLINE(1));
+@TEXT('./results/J_5_T_6_setups_solution') = @WRITEFOR(OPERATIONAL_MARKET(j,t): 6*' ','(',j, ',',t,')',6*' ',      SEASONALITY(j,t)*A(j,t)*@PROD(CROSS_PRICE(j,i1):@POW(P(i1,t),B(j,i1))) ,@NEWLINE(1));
+ENDDATA
+
+!1: Objective function;
+MAX = @SUM(OPERATIONAL_MARKET(j,t):P(j,t)*SEASONALITY(j,t)*A(j,t)*@PROD(CROSS_PRICE(j,i1):@POW(P(i1,t),B(j,i1)))-        C(j,t)*X(j,t) - H(j,t)*I(j,t));
+
+!------------------------------------------------------------------------------------------------------------------------------------------;
+!------------------------------------------------------------- Logistic constraints -------------------------------------------------------;
+!------------------------------------------------------------------------------------------------------------------------------------------;
+
+!2: Capacity constraints;
+@FOR(PERIODS(t): @SUM(CAPACITY_USED(j): V(j)*X(j,t)) <= PROD_CAP(t));
+
+!3: Inventory constraints for t = 1;
+@FOR(OPERATIONAL_MARKET(j,t) | t#EQ# 1: X(j,t) -    (SEASONALITY(j,t)*A(j,t)*@PROD(CROSS_PRICE(j,i1):@POW(P(i1,t),B(j,i1)))) = I(j,t));
+
+!4: Inventory constraints for t = 2, ..., PERIODS_NUMBER -  1;
+
+@FOR(OPERATIONAL_MARKET(j,t) | t#GE# 2 #AND# t #LE# PERIODS_NUMBER - 1: X(j,t) +I(j,t-1) -    (SEASONALITY(j,t)*A(j,t)*@PROD(CROSS_PRICE(j,i1):@POW(P(i1,t),B(j,i1)))) = I(j,t));
+!5: Inventory constraints for t = T;
+@FOR(OPERATIONAL_MARKET(j,t) | t#EQ# PERIODS_NUMBER #AND# t #NE# 1: X(j,t) + I(j,t-1) - (SEASONALITY(j,t)*A(j,t)*@PROD(CROSS_PRICE(j,i1):@POW(P(i1,t),B(j,i1)))) = 0);
+
+!6: Setup constraints;
+V(1)*X(1,1) - 1*PROD_CAP(1) <= 0;
+V(1)*X(1,2) - 0*PROD_CAP(2) <= 0;
+V(1)*X(1,3) - 1*PROD_CAP(3) <= 0;
+V(1)*X(1,4) - 1*PROD_CAP(4) <= 0;
+V(1)*X(1,5) - 1*PROD_CAP(5) <= 0;
+V(1)*X(1,6) - 1*PROD_CAP(6) <= 0;
+V(2)*X(2,1) - 1*PROD_CAP(1) <= 0;
+V(2)*X(2,2) - 1*PROD_CAP(2) <= 0;
+V(2)*X(2,3) - 0*PROD_CAP(3) <= 0;
+V(2)*X(2,4) - 1*PROD_CAP(4) <= 0;
+V(2)*X(2,5) - 0*PROD_CAP(5) <= 0;
+V(2)*X(2,6) - 1*PROD_CAP(6) <= 0;
+V(3)*X(3,1) - 1*PROD_CAP(1) <= 0;
+V(3)*X(3,2) - 0*PROD_CAP(2) <= 0;
+V(3)*X(3,3) - 1*PROD_CAP(3) <= 0;
+V(3)*X(3,4) - 1*PROD_CAP(4) <= 0;
+V(3)*X(3,5) - 0*PROD_CAP(5) <= 0;
+V(3)*X(3,6) - 1*PROD_CAP(6) <= 0;
+V(4)*X(4,1) - 1*PROD_CAP(1) <= 0;
+V(4)*X(4,2) - 0*PROD_CAP(2) <= 0;
+V(4)*X(4,3) - 1*PROD_CAP(3) <= 0;
+V(4)*X(4,4) - 1*PROD_CAP(4) <= 0;
+V(4)*X(4,5) - 1*PROD_CAP(5) <= 0;
+V(4)*X(4,6) - 1*PROD_CAP(6) <= 0;
+V(5)*X(5,1) - 1*PROD_CAP(1) <= 0;
+V(5)*X(5,2) - 0*PROD_CAP(2) <= 0;
+V(5)*X(5,3) - 0*PROD_CAP(3) <= 0;
+V(5)*X(5,4) - 1*PROD_CAP(4) <= 0;
+V(5)*X(5,5) - 1*PROD_CAP(5) <= 0;
+V(5)*X(5,6) - 0*PROD_CAP(6) <= 0;
+!------------------------------------------------------------------------------------------------------------------------------------------;
+!------------------------------------------------------------- Business cosntraints -------------------------------------------------------;
+!------------------------------------------------------------------------------------------------------------------------------------------;
+
+!7: Prices lower bounds constraints;
+@FOR(OPERATIONAL_MARKET(j,t): P(j,t) >= LB(j,t));
+!8: Prices upper bounds constraints;
+@FOR(OPERATIONAL_MARKET(j,t): P(j,t) <= UB(j,t));
+END
+
+set terseo 1
+go
+nonz volume
+quit

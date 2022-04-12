@@ -1,0 +1,10 @@
+#!/bin/sh         
+export LINGO_18_HOME=/home/terzi/lingo18
+#
+export LD_LIBRARY_PATH=$LINGO_18_HOME/bin/linux64:$LD_LIBRARY_PATH
+#
+export FONTPATH=$LINGO_18_HOME/fonts/charting
+#
+export QT_QPA_FONTDIR=$LINGO_18_HOME/fonts/gui
+#
+exec $LINGO_18_HOME/bin/linux64/runlingo.bin "$@"
